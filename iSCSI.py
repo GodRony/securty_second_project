@@ -216,10 +216,8 @@ class Iscsi:
     
     def __init__(self, os):
         self.os = os
-        self.client_iqn = ""
-        self.iscsi_server_iqn = ""
-        cmd(self.a)
-        out = append
+        self.server_ip = input("서버 ip 입력 : ")
+        self.client_ip = input(" 클라이언트 ip 입력 : ")
         
     # def upup(self):
     #     if self.os == "Rocky":
@@ -257,45 +255,26 @@ class Iscsi:
         else:
             return "지원하지 않는 OS입니다."
 
-def targetcli(self)
+def targetcli(self, client_iqn, server_iqn)
     disk_name = input("디스크 이름 : ex)disk100")
     disk_path = input("디스크 경로 : ex)/dev/sdb")
-    iqn_target = "iqn.2025-10.com.total1:storage.target1"
-    iqn_initiator = "iqn.2025-10.com.client:init1"
+   
 
-    cmd = [
+    cmds = [
             "targetcli",
             f"/backstores/block create {disk_num} {disk_path}",
-            f"/iscsi create {iqn_target}",
-            f"/iscsi/{iqn_target}/tpg1/luns create /backstores/block/{disk_num}",
-            f"/iscsi/{iqn_target}/tpg1/acls create {iqn_initiator}",
-            f"/iscsi/{iqn_target}/tpg1/portals create 0.0.0.0",
+            f"/iscsi create {server_iqn}",
+            f"/iscsi/{server_iqn}/tpg1/luns create /backstores/block/{disk_name}",
+            f"/iscsi/{server_iqn}/tpg1/acls create {client_iqn}",
+            f"/iscsi/{server_iqn}/tpg1/portals create 0.0.0.0",
             f"targetcli saveconfig",
             f"ls",
             "exit"
         ]
-
-***************************************************************************************
-a = ""
-# 이니시에이터 서버 설치
-    로키라면
-   f""" dnf install iscsi-initiator-utils
-    systemctl enable --now iscsid
-    systemctl status iscsid """
-
-
-    우분투라면
-   cmd3 apt install -y open-iscs
-cmd2 systemctl enable --now iscsid
-   cmd1systemctl status iscsid
-return cdm1,cmd3,cmd2
-# 이니시에이터 서버 iqn확인
-def 
-    self.a = cat /etc/iscsi/initiatorname.iscsi
-    return a
-# 타겟서버 검색
-iscsiadm -m discovery -t st -p 타겟서버IP
-
+    for c in cmds:
+        return c
+        
+**************************************************************************************
 # 타겟서버 연결
 iscsiadm -m discovery -t sendtargets -p 타겟서버ip -l
 
@@ -311,28 +290,27 @@ blkid /dev/sda #uuid확인
 vim /etc/fstab 들어가서 내용 추가 #영구마운트
 uuid=uuid /mnt/a ext4 defaults 0 0
 df # 마운트확인
-
-
---------------------------------------------------------------------------------------------
+***************************************************************************************
+    
 def iscsi_client_iqn(self):
     return "cat /etc/iscsi/initiatorname.iscsi"
 
 def iscsi_server_iqn(self):
     return "cat /etc/iscsi/initiatorname.iscsi"
 
-def iscsi_client_install(self,iqn):  # iscsi 클라이언트 설치 및 IQN 파일 생성
+
+def iscsi_client_install(self):  # iscsi 클라이언트 설치 및 IQN 파일 생성
   
     if self.os == "Ubuntu":
-        cmd(f"apt install -y open-iscs")
-        cmd(f"systemctl enable iscsid && systemctl start iscsid")
+        return "apt install -y open-iscs && systemctl enable iscsid && systemctl start iscsid"
 
     else:
-        cmd(ISCSI_CLIENT_IP, "dnf install -y iscsi-initiator-utils iscsi-initiator-utils-iscsiuio")
-        cmd(ISCSI_CLIENT_IP, "systemctl enable iscsid && systemctl start iscsid")
-        cmd(ISCSI_CLIENT_IP, "systemctl enable iscsi && systemctl start iscsi")
-
+        return "dnf install -y iscsi-initiator-utils && systemctl enable --now iscsid"
+        
     print("iSCSI 클라이언트 설치 및 IQN 생성 완료\n")
 
+def target_search():
+    return "iscsiadm -m discovery -t st -p {타겟서버IP}"
 
 
 
