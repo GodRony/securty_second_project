@@ -213,10 +213,14 @@ def iscsi_client_mount():
     print(cmd(ISCSI_CLIENT_IP, f"df -h | grep {MOUNT_POINT} || echo '마운트 실패'"))
 =======================================================================================================================
 class Iscsi:
-    def __init__(self, os, ip):
+    
+    def __init__(self, os):
         self.os = os
-        self.ip = ip
-
+        self.client_iqn = ""
+        self.iscsi_server_iqn = ""
+        cmd(self.a)
+        out = append
+        
     # def upup(self):
     #     if self.os == "Rocky":
     #         return "dnf update && dnf upgrade -y"
@@ -259,7 +263,7 @@ def targetcli(self)
     iqn_target = "iqn.2025-10.com.total1:storage.target1"
     iqn_initiator = "iqn.2025-10.com.client:init1"
 
- cmd = [
+    cmd = [
             "targetcli",
             f"/backstores/block create {disk_num} {disk_path}",
             f"/iscsi create {iqn_target}",
@@ -272,21 +276,23 @@ def targetcli(self)
         ]
 
 ***************************************************************************************
-
+a = ""
 # 이니시에이터 서버 설치
     로키라면
-    dnf install iscsi-initiator-utils
+   f""" dnf install iscsi-initiator-utils
     systemctl enable --now iscsid
-    systemctl status iscsid
+    systemctl status iscsid """
+
 
     우분투라면
-    apt install -y open-iscs
-    systemctl enable --now iscsid
-    systemctl status iscsid
-
+   cmd3 apt install -y open-iscs
+cmd2 systemctl enable --now iscsid
+   cmd1systemctl status iscsid
+return cdm1,cmd3,cmd2
 # 이니시에이터 서버 iqn확인
-cat /etc/iscsi/initiatorname.iscsi
-
+def 
+    self.a = cat /etc/iscsi/initiatorname.iscsi
+    return a
 # 타겟서버 검색
 iscsiadm -m discovery -t st -p 타겟서버IP
 
@@ -308,14 +314,18 @@ df # 마운트확인
 
 
 --------------------------------------------------------------------------------------------
+def iscsi_client_iqn(self):
+    return "cat /etc/iscsi/initiatorname.iscsi"
 
-def iscsi_client_install(self):  # iscsi 클라이언트 설치 및 IQN 파일 생성
+def iscsi_server_iqn(self):
+    return "cat /etc/iscsi/initiatorname.iscsi"
+
+def iscsi_client_install(self,iqn):  # iscsi 클라이언트 설치 및 IQN 파일 생성
   
     if self.os == "Ubuntu":
         cmd(f"apt install -y open-iscs")
         cmd(f"systemctl enable iscsid && systemctl start iscsid")
 
- 
     else:
         cmd(ISCSI_CLIENT_IP, "dnf install -y iscsi-initiator-utils iscsi-initiator-utils-iscsiuio")
         cmd(ISCSI_CLIENT_IP, "systemctl enable iscsid && systemctl start iscsid")

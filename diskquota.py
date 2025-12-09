@@ -20,12 +20,12 @@ class Diskquota:
 
     def __init__(self, os, server_ip, interface):
         self.os = os
-        self.server_ip = server_ip
-        self.interface = interface
-        self.mount_point = mount_point
-        self.diskquota_device = diskquota_device
-        self.diskquota_id = diskquota_id
-        self.diskquota_group_id = diskquota_group_id
+        self.server_ip = ""
+        self.interface = ""
+        self.mount_point = ""
+        self.diskquota_device = ""
+        self.diskquota_id = ""
+        self.diskquota_group_id = ""
 
 # quota 설치
     def diskquota_isntall(self):

@@ -4,12 +4,7 @@ import paramiko
 # import값 대신 사용할 임시 변수들 (클래스 밖)
 #===================================================================
 
-OS = "Rocky9"
-SERVER_IP = "172.16.5.12"
-INTERFACE = "ens160"
-DOMAIN = "example.local"
 GATEWAY = "172.16.0.1"
-DNS = ["172.16.5.11", "8.8.8.8"] 
 
 MIN_RENT = 100        
 MAX_RENT = 600    
@@ -27,45 +22,13 @@ STATIC_HOSTS = [
 ]
 
 #===================================================================
-# 임시 SSH 연결 코드
-#===================================================================
-
-SSH_USER = "root"
-SSH_PASSWORD = "password"
-cli = paramiko.SSHClient()
-connected = False
-
-def cc(cmd):
-    global cli, connected
-    
-    if not connected:
-        cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        cli.connect(SERVER_IP, username=SSH_USER, password=SSH_PASSWORD, port=22, timeout=30)
-        connected = True
-        print("SSH 연결 성공\n")
-    
-    (stdin, stdout, stderr) = cli.exec_command(cmd)
-    return stdout
-
-def pp(stdout):
-    for i in stdout:
-        print(i, end='')
-
-#===================================================================
 # DHCP 클래스
 #===================================================================
 class Dhcp():
     
-    def __init__(self, os, server_ip, interface):
-        self.os = os
-        self.server_ip = server_ip
-        self.interface = interface
-        
+    def __init__(self):
         # 전역 변수에서 복사
-        self.domain = DOMAIN
         self.gateway = GATEWAY
-        self.dns = DNS
-        
         self.min_rent = MIN_RENT
         self.max_rent = MAX_RENT
         self.network_ni = NETWORK_NI
@@ -76,54 +39,54 @@ class Dhcp():
 #===================================================================
     
     def chk_os(self):
-        cmds = [
-            "cat /etc/os-release | grep PRETTY_NAME",
-            "hostnamectl",
-            f"ip addr show {self.interface}"
-        ]
-        for cmd in cmds:
-            pp(cc(cmd))
+        cmd = """
+cat /etc/os-release | grep PRETTY_NAME
+hostnamectl
+ip addr
+"""
+        return cmd        
         
 #===================================================================
     
     def install(self):
-        cmds = [
-            "dnf install -y dhcp-server",
-            "rpm -qa | grep dhcp-server"
-        ]
-        for cmd in cmds:
-            pp(cc(cmd))
+        cmd = """
+apt update
+apt install -y isc-dhcp-server
+dpkg -l | grep isc-dhcp-server
+"""
+        return cmd
         
 #===================================================================        
+    
     def on_off(self):
         print("1. DHCP 서비스 시작")
         print("2. DHCP 서비스 중지")
         choice = input("선택: ")
         
         if choice == "1":
-            cmds = [
-                "systemctl enable dhcpd",
-                "systemctl start dhcpd",
-                "systemctl status dhcpd"
-            ]
+            cmd = """
+systemctl enable isc-dhcp-server
+systemctl start isc-dhcp-server
+systemctl status isc-dhcp-server
+"""
         elif choice == "2":
-            cmds = [
-                "systemctl stop dhcpd",
-                "systemctl disable dhcpd",
-                "systemctl status dhcpd"
-            ]
+            cmd = """
+systemctl stop isc-dhcp-server
+systemctl disable isc-dhcp-server
+systemctl status isc-dhcp-server
+"""
         else:
-            print("잘못된 선택입니다.")
-            return
+            return "echo '잘못된 선택입니다.'"
         
-        for cmd in cmds:
-            pp(cc(cmd))
+        return cmd
         
 #===================================================================        
-    # def option(self):
-    #     pass
+    
+    def option(self):
+        pass
         
 #===================================================================        
+    
     def set_pool(self):
         # range 부분 만들기
         range_text = ""
@@ -139,7 +102,7 @@ class Dhcp():
             host_text += f"}}\n\n"
         
         # 전체 설정
-        dhcp_config = f"""
+        cmd = f"""
 cat >> /etc/dhcp/dhcpd.conf << 'EOF'
 
 subnet {self.network_ni} netmask {self.network_sub} {{
@@ -149,23 +112,21 @@ subnet {self.network_ni} netmask {self.network_sub} {{
 
 {host_text}
 EOF
+
+cat /etc/dhcp/dhcpd.conf
+dhcpd -t -cf /etc/dhcp/dhcpd.conf
+systemctl restart isc-dhcp-server
 """
-        
-        cmds = [
-            dhcp_config,
-            "cat /etc/dhcp/dhcpd.conf",
-            "dhcpd -t -cf /etc/dhcp/dhcpd.conf",
-            "systemctl restart dhcpd"
-        ]
-        
-        for cmd in cmds:
-            pp(cc(cmd))
+        return cmd
         
 #===================================================================        
-    # def ins_pool(self):
-    #     pass
+    
+    def ins_pool(self):
+        # Range IP 추가 로직 구현
+        pass
         
 #===================================================================        
+    
     def del_pool(self):
         print("현재 Range 목록:")
         
@@ -178,64 +139,84 @@ EOF
             target_start = self.range_ip[choice][0]
             target_end = self.range_ip[choice][1]
             
-            cmds = [
-                f"sed -i '/range {target_start} {target_end}/d' /etc/dhcp/dhcpd.conf",
-                "cat /etc/dhcp/dhcpd.conf",
-                "systemctl restart dhcpd"
-            ]
-            
-            for cmd in cmds:
-                pp(cc(cmd))
+            cmd = f"""
+sed -i '/range {target_start} {target_end}/d' /etc/dhcp/dhcpd.conf
+cat /etc/dhcp/dhcpd.conf
+systemctl restart isc-dhcp-server
+"""
             
             del self.range_ip[choice]
             print(f"\n{target_start} ~ {target_end} Range 삭제 완료")
+            return cmd
         else:
-            print("잘못된 번호입니다.")
+            return "echo '잘못된 번호입니다.'"
         
 #===================================================================        
+    
     def chk_pool(self):
-        cmds = [
-            "echo '=== DHCP 설정 파일 ==='",
-            "cat /etc/dhcp/dhcpd.conf",
-            "echo '=== Lease 정보 ==='",
-            "cat /var/lib/dhcpd/dhcpd.leases | tail -20"
-        ]
-        for cmd in cmds:
-            pp(cc(cmd))
+        cmd = """
+echo '=== DHCP 설정 파일 ==='
+cat /etc/dhcp/dhcpd.conf
+echo ''
+echo '=== Lease 정보 ==='
+cat /var/lib/dhcp/dhcpd.leases | tail -20
+"""
+        return cmd
         
 #===================================================================        
+    
     def backup(self):
-        cmds = [
-            "mkdir -p /root/backup/dhcp",
-            "cp /etc/dhcp/dhcpd.conf /root/backup/dhcp/dhcpd.conf.backup",
-            "cp /var/lib/dhcpd/dhcpd.leases /root/backup/dhcp/dhcpd.leases.backup",
-            "ls -lh /root/backup/dhcp/"
-        ]
-        for cmd in cmds:
-            pp(cc(cmd))
+        cmd = """
+mkdir -p /root/backup/dhcp
+cp /etc/dhcp/dhcpd.conf /root/backup/dhcp/dhcpd.conf.backup
+cp /var/lib/dhcp/dhcpd.leases /root/backup/dhcp/dhcpd.leases.backup
+ls -lh /root/backup/dhcp/
+"""
+        return cmd
         
 #===================================================================
 
     def set_log(self):
-        cmds = [
-            "grep -i dhcp /var/log/messages > /var/log/dhcpd.log"
-        ]
-        for cmd in cmds:
-            pp(cc(cmd))
+        cmd = """
+grep -i dhcp /var/log/syslog > /var/log/dhcpd.log
+echo 'DHCP 로그 파일 생성 완료: /var/log/dhcpd.log'
+"""
+        return cmd
             
-        print("DHCP 로그 파일 생성 완료: /var/log/dhcpd.log")
-        
 #===================================================================        
+    
     def chk_log(self):
-        cmds = [
-            "echo '=== DHCP 로그 ==='",
-            "tail -50 /var/log/dhcpd.log 2>/dev/null || echo '로그 파일이 없습니다.'"
-        ]
-        for cmd in cmds:
-            pp(cc(cmd))
+        cmd = """
+echo '=== DHCP 로그 ==='
+tail -50 /var/log/dhcpd.log 2>/dev/null || echo '로그 파일이 없습니다.'
+"""
+        return cmd
 
 
+#===================================================================
+# 임시 SSH 연결 코드
+#===================================================================
 
+# SSH_USER = "root"
+# SSH_PASSWORD = "password"
+# cli = paramiko.SSHClient()
+# connected = False
+
+# def cc(cmd):
+#     global cli, connected
+    
+#     if not connected:
+#         cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+#         cli.connect(SERVER_IP, username=SSH_USER, password=SSH_PASSWORD, port=22, timeout=30)
+#         connected = True
+#         print("SSH 연결 성공\n")
+    
+#     (stdin, stdout, stderr) = cli.exec_command(cmd)
+#     return stdout
+
+# def pp(stdout):
+#     for i in stdout:
+#         print(i, end='')
     
         
 # 필요한 변수

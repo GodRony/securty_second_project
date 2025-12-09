@@ -1,10 +1,9 @@
 class Nfs:
 
-    def __init__(self, os, server_ip, interface):
+    def __init__(self, os, server_ip):
         self.os = os
-        self.server_ip = server_ip
-        self.interface = interface
-        self.nfs_share_folder = nfs_share_folder
+        self.server_ip = ""
+        self.nfs_share_folder = ""
 
     def nfs_isntall(self):
             print("nfs 패키지를 설치합니다.")
