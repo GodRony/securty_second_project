@@ -1,57 +1,60 @@
 import paramiko
+from CC import CC
 
 #===================================================================
-# import값 대신 사용할 임시 변수들 (클래스 밖)
+# 생성자 예시
 #===================================================================
-
-GATEWAY = "172.16.0.1"
-
-MIN_RENT = 100        
-MAX_RENT = 600    
-NETWORK_NI = "172.16.5.0"
-NETWORK_SUB = "255.255.0.0"
-
-RANGE_IP = [
-    ("172.16.5.40", "172.16.5.42"),
-    ("172.16.5.46", "172.16.5.50")
-]
-
-STATIC_HOSTS = [
-    ("1.1.1.1", "aa:bb:cc:dd:ee:ff"),
-    ("1.1.1.2", "11:22:33:44:55:66")
-]
+"""
+dhcp = Dhcp(
+    os="rocky9",
+    gateway="172.16.0.1",
+    min_rent=100,
+    max_rent=600,
+    network_ni="172.16.5.0",
+    network_sub="255.255.0.0",
+    range_ip=[
+        ("172.16.5.40", "172.16.5.42"),
+        ("172.16.5.46", "172.16.5.50")
+    ],
+    static_hosts=[
+        ("1.1.1.1", "aa:bb:cc:dd:ee:ff"),
+        ("1.1.1.2", "11:22:33:44:55:66")
+    ]
+)
+"""
 
 #===================================================================
 # DHCP 클래스
 #===================================================================
 class Dhcp():
     
-    def __init__(self):
-        
-        self.gateway = GATEWAY
-        self.min_rent = MIN_RENT
-        self.max_rent = MAX_RENT
-        self.network_ni = NETWORK_NI
-        self.network_sub = NETWORK_SUB
-        self.range_ip = RANGE_IP
-        self.static_hosts = STATIC_HOSTS
+    def __init__(self, os, gateway, min_rent, max_rent, network_ni, network_sub, range_ip, static_hosts):
+        self.os = os
+        self.gateway = gateway
+        self.min_rent = min_rent
+        self.max_rent = max_rent
+        self.network_ni = network_ni
+        self.network_sub = network_sub
+        self.range_ip = range_ip
+        self.static_hosts = static_hosts
         
 #===================================================================
     
-    def chk_os(self):
-        cmd = """
-cat /etc/os-release | grep PRETTY_NAME
-hostnamectl
-ip addr
-"""
-        return cmd        
+# 메소드        
         
 #===================================================================
     
     def install(self):
-        cmd = """
+        if self.os == "rocky9":
+            cmd = """
 dnf install -y dhcp-server
 rpm -qa | grep dhcp-server
+"""
+        else:  # ubuntu
+            cmd = """
+apt update
+apt install -y isc-dhcp-server
+dpkg -l | grep isc-dhcp-server
 """
         return cmd
         
@@ -62,17 +65,22 @@ rpm -qa | grep dhcp-server
         print("2. DHCP 서비스 중지")
         choice = input("선택: ")
         
+        if self.os == "rocky9":
+            service_name = "dhcpd"
+        else:
+            service_name = "isc-dhcp-server"
+        
         if choice == "1":
-            cmd = """
-systemctl enable dhcpd
-systemctl start dhcpd
-systemctl status dhcpd
+            cmd = f"""
+systemctl enable {service_name}
+systemctl start {service_name}
+systemctl status {service_name}
 """
         elif choice == "2":
-            cmd = """
-systemctl stop dhcpd
-systemctl disable dhcpd
-systemctl status dhcpd
+            cmd = f"""
+systemctl stop {service_name}
+systemctl disable {service_name}
+systemctl status {service_name}
 """
         else:
             return "echo '잘못된 선택입니다.'"
@@ -80,12 +88,7 @@ systemctl status dhcpd
         return cmd
         
 #===================================================================        
-    
-    def option(self):
-        pass
-        
-#===================================================================        
-    
+            
     def set_pool(self):
         # range 부분 만들기
         range_text = ""
@@ -99,6 +102,11 @@ systemctl status dhcpd
             host_text += f"    hardware ethernet {self.static_hosts[i][1]};\n"
             host_text += f"    fixed-address {self.static_hosts[i][0]};\n"
             host_text += f"}}\n\n"
+        
+        if self.os == "rocky9":
+            service_name = "dhcpd"
+        else:
+            service_name = "isc-dhcp-server"
         
         # 전체 설정
         cmd = f"""
@@ -114,15 +122,9 @@ EOF
 
 cat /etc/dhcp/dhcpd.conf
 dhcpd -t -cf /etc/dhcp/dhcpd.conf
-systemctl restart dhcpd
+systemctl restart {service_name}
 """
         return cmd
-        
-#===================================================================        
-    
-    def ins_pool(self):
-        # Range IP 추가 로직 구현
-        pass
         
 #===================================================================        
     
@@ -138,10 +140,15 @@ systemctl restart dhcpd
             target_start = self.range_ip[choice][0]
             target_end = self.range_ip[choice][1]
             
+            if self.os == "rocky9":
+                service_name = "dhcpd"
+            else:
+                service_name = "isc-dhcp-server"
+            
             cmd = f"""
 sed -i '/range {target_start} {target_end}/d' /etc/dhcp/dhcpd.conf
 cat /etc/dhcp/dhcpd.conf
-systemctl restart dhcpd
+systemctl restart {service_name}
 """
             
             del self.range_ip[choice]
@@ -153,22 +160,32 @@ systemctl restart dhcpd
 #===================================================================        
     
     def chk_pool(self):
-        cmd = """
+        if self.os == "rocky9":
+            lease_path = "/var/lib/dhcpd/dhcpd.leases"
+        else:
+            lease_path = "/var/lib/dhcp/dhcpd.leases"
+        
+        cmd = f"""
 echo '=== DHCP 설정 파일 ==='
 cat /etc/dhcp/dhcpd.conf
 echo ''
 echo '=== Lease 정보 ==='
-cat /var/lib/dhcpd/dhcpd.leases | tail -20
+cat {lease_path} | tail -20
 """
         return cmd
         
 #===================================================================        
     
     def backup(self):
-        cmd = """
+        if self.os == "rocky9":
+            lease_path = "/var/lib/dhcpd/dhcpd.leases"
+        else:
+            lease_path = "/var/lib/dhcp/dhcpd.leases"
+        
+        cmd = f"""
 mkdir -p /root/backup/dhcp
 cp /etc/dhcp/dhcpd.conf /root/backup/dhcp/dhcpd.conf.backup
-cp /var/lib/dhcpd/dhcpd.leases /root/backup/dhcp/dhcpd.leases.backup
+cp {lease_path} /root/backup/dhcp/dhcpd.leases.backup
 ls -lh /root/backup/dhcp/
 """
         return cmd
@@ -176,8 +193,13 @@ ls -lh /root/backup/dhcp/
 #===================================================================
 
     def set_log(self):
-        cmd = """
-grep -i dhcp /var/log/messages > /var/log/dhcpd.log
+        if self.os == "rocky9":
+            log_source = "/var/log/messages"
+        else:
+            log_source = "/var/log/syslog"
+        
+        cmd = f"""
+grep -i dhcp {log_source} > /var/log/dhcpd.log
 echo 'DHCP 로그 파일 생성 완료: /var/log/dhcpd.log'
 """
         return cmd
@@ -216,79 +238,3 @@ tail -50 /var/log/dhcpd.log 2>/dev/null || echo '로그 파일이 없습니다.'
 # def pp(stdout):
 #     for i in stdout:
 #         print(i, end='')
-
-    
-        
-# 필요한 변수
-# ======================
-# 사용 OS
-# DHCP 구성 요소
-#     본인 IP
-#     기본 임대 시간
-#     최대 임대 시간
-#     구성할 대역(NI와 서브넷)
-#     제외할 대역
-#     고정 IP / 반영하는 MAC 주소
-# 옵션 라우터
-# 옵션 DNS서버
-# ======================
-# 메소드
-
-
-# OS 구분
-#     Rocky or Ubuntu?
-
-# 설치 / 중복 확인
-#     중복 확인
-
-#     if  dpkg -l | grep [패키지명] / dnf list installed | grep [패키지명] is true:
-#         pass
-#     else
-#         apt install / dnf install
-#     설치
-
-# 기능 활성화 / 정지
-#     활성화
-#     비활성화
-#     재시작
-
-# 기본 설정 / 동작
-#     기본 옵션
-#     특정 부분 편집 / 추가
-
-# 설정파일 백업
-#     설정 디렉터리.bak
-
-# 풀 생성 / 삭제
-    
-#     풀 설정 디렉터리
-
-#     생성 OR 삭제 여부
-
-#     구성 대역 설정    
-#     제외 대역 설정    
-#     고정 IP(반영할 MAC주소)
-#     내용 양식 추가
-
-#     이름 중복시 경고
-
-# 풀 수정
-    
-#     풀 설정 디렉터리
-    
-#     구성 대역 설정    
-#     제외 대역 설정    
-#     고정 IP(반영할 MAC주소)
-#     내용 양식 추가
-
-#     수정 확인
-
-# 풀 확인
-
-# 로그 설정
-#     로그를 저장할 디렉터리 설정
-
-# 로그 확인
-#     확인하고 싶은 로그 부분 설정
-
-

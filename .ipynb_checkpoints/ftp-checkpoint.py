@@ -1,51 +1,55 @@
 import paramiko
+from CC import CC
 
 #===================================================================
-# import값 대신 사용할 임시 변수들 (클래스 밖)
+# 생성자 예시
 #===================================================================
-
-FTP_USER = "ftpuser"
-FTP_PASS = "asd123!@"
-FTP_HOME = "/home/ftpuser"
-ANONYMOUS_ENABLE = "NO"
-CHROOT_ENABLE = "YES"
-FTP_GROUP = "ftpgroup"
+"""
+ftp = Ftp(
+    os="rocky9",
+    ftp_user="ftpuser",
+    ftp_pass="asd123!@",
+    ftp_home="/home/ftpuser",
+    anonymous_enable="NO",
+    chroot_enable="YES",
+    ftp_group="ftpgroup",
+    backup_dir="/root/backup/ftp_sftp",
+    ftp_log="/var/log/vsftpd.log"
+)
+"""
 
 #===================================================================
 # FTP 클래스
 #===================================================================
 class Ftp():
     
-    def __init__(self):
-        # FTP 전역 변수에서 복사
-        self.ftp_user = FTP_USER
-        self.ftp_pass = FTP_PASS
-        self.ftp_home = FTP_HOME
-        self.anonymous_enable = ANONYMOUS_ENABLE
-        self.chroot_enable = CHROOT_ENABLE
-        
-        # SFTP 전역 변수에서 복사
-        self.sftp_user = SFTP_USER
-        self.sftp_pass = SFTP_PASS
-        self.sftp_home = SFTP_HOME
-        self.sftp_group = SFTP_GROUP
-        
-#===================================================================
-    
-    def chk_os(self):
-        cmd = """
-cat /etc/os-release | grep PRETTY_NAME
-hostnamectl
-ip addr
-"""
-        return cmd        
+    def __init__(self, os, ftp_user, ftp_pass, ftp_home, anonymous_enable, chroot_enable, ftp_group, backup_dir, ftp_log):
+        self.os = os
+        self.ftp_user = ftp_user
+        self.ftp_pass = ftp_pass
+        self.ftp_home = ftp_home
+        self.anonymous_enable = anonymous_enable
+        self.chroot_enable = chroot_enable
+        self.ftp_group = ftp_group
+        self.backup_dir = backup_dir
+        self.ftp_log = ftp_log
         
 #===================================================================
     
     def install(self):
-        cmd = """
+        if self.os == "rocky9":
+            cmd = """
 dnf install -y vsftpd
 rpm -qa | grep vsftpd
+systemctl enable vsftpd
+systemctl start vsftpd
+systemctl status vsftpd
+"""
+        else:  # ubuntu
+            cmd = """
+apt update
+apt install -y vsftpd
+dpkg -l | grep vsftpd
 systemctl enable vsftpd
 systemctl start vsftpd
 systemctl status vsftpd
@@ -79,10 +83,15 @@ systemctl status vsftpd
 #===================================================================        
     
     def set_ftp_config(self):
+        if self.os == "rocky9":
+            config_path = "/etc/vsftpd/vsftpd.conf"
+        else:
+            config_path = "/etc/vsftpd.conf"
+        
         cmd = f"""
-cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.backup
+cp {config_path} {config_path}.backup
 
-cat > /etc/vsftpd/vsftpd.conf << 'EOF'
+cat > {config_path} << 'EOF'
 anonymous_enable={self.anonymous_enable}
 local_enable=YES
 write_enable=YES
@@ -98,7 +107,7 @@ userlist_enable=YES
 tcp_wrappers=YES
 EOF
 
-cat /etc/vsftpd/vsftpd.conf
+cat {config_path}
 systemctl restart vsftpd
 """
         return cmd
@@ -106,11 +115,16 @@ systemctl restart vsftpd
 #===================================================================        
     
     def add_ftp_user(self):
+        if self.os == "rocky9":
+            nologin_path = "/sbin/nologin"
+        else:
+            nologin_path = "/usr/sbin/nologin"
+        
         cmd = f"""
-useradd ftpuser -d /home/ftpuser -s /sbin/nologin
-echo 'ftpuser:{self.ftp_pass}' | chpasswd
-chown -R ftpuser:ftpuser /home/ftpuser
-chmod -R 755 /home/ftpuser
+useradd {self.ftp_user} -d {self.ftp_home} -s {nologin_path}
+echo '{self.ftp_user}:{self.ftp_pass}' | chpasswd
+chown -R {self.ftp_user}:{self.ftp_user} {self.ftp_home}
+chmod -R 755 {self.ftp_home}
 echo 'FTP 사용자 생성 완료'
 """
         return cmd
@@ -118,23 +132,28 @@ echo 'FTP 사용자 생성 완료'
 #===================================================================        
     
     def set_sftp_config(self):
+        if self.os == "rocky9":
+            nologin_path = "/sbin/nologin"
+        else:
+            nologin_path = "/usr/sbin/nologin"
+        
         cmd = f"""
-groupadd sftpgroup
+groupadd {self.ftp_group}
 
-useradd -g sftpgroup -s /sbin/nologin -d /home/sftpuser sftpuser
-echo 'sftpuser:{self.sftp_pass}' | chpasswd
+useradd -g {self.ftp_group} -s {nologin_path} -d /home/sftpuser sftpuser
+echo 'sftpuser:{self.ftp_pass}' | chpasswd
 
 mkdir -p /home/sftpuser/upload
 chown root:root /home/sftpuser
 chmod 755 /home/sftpuser
-chown sftpuser:sftpgroup /home/sftpuser/upload
+chown sftpuser:{self.ftp_group} /home/sftpuser/upload
 chmod 755 /home/sftpuser/upload
 
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
 
 cat >> /etc/ssh/sshd_config << 'EOF'
 
-Match Group sftpgroup
+Match Group {self.ftp_group}
     ChrootDirectory /home/%u
     ForceCommand internal-sftp
     AllowTcpForwarding no
@@ -150,9 +169,14 @@ echo 'SFTP 설정 완료'
 #===================================================================        
     
     def chk_ftp_config(self):
-        cmd = """
+        if self.os == "rocky9":
+            config_path = "/etc/vsftpd/vsftpd.conf"
+        else:
+            config_path = "/etc/vsftpd.conf"
+        
+        cmd = f"""
 echo '=== FTP 설정 파일 ==='
-cat /etc/vsftpd/vsftpd.conf
+cat {config_path}
 echo '=== FTP 서비스 상태 ==='
 systemctl status vsftpd
 """
@@ -161,42 +185,52 @@ systemctl status vsftpd
 #===================================================================        
     
     def chk_sftp_config(self):
-        cmd = """
-echo '=== SSH/SFTP 설정 파일 (마지막 5줄) ==='
+        cmd = f"""
+echo '=== SSH/SFTP 설정 파일 ==='
 tail -5 /etc/ssh/sshd_config
 echo '=== SFTP 서비스 상태 ==='
 systemctl status sshd
 echo '=== SFTP 사용자 확인 ==='
-getent group sftpgroup
+getent group {self.ftp_group}
 """
         return cmd
         
 #===================================================================        
     
     def chk_ftp_log(self):
-        cmd = """
+        cmd = f"""
 echo '=== FTP 로그 ==='
-tail -50 /var/log/vsftpd.log 2>/dev/null || echo 'FTP 로그 파일이 없습니다.'
+tail -50 {self.ftp_log} 2>/dev/null || echo 'FTP 로그 파일이 없습니다.'
 """
         return cmd
         
 #===================================================================        
     
     def chk_sftp_log(self):
-        cmd = """
+        if self.os == "rocky9":
+            log_path = "/var/log/secure"
+        else:
+            log_path = "/var/log/auth.log"
+        
+        cmd = f"""
 echo '=== SFTP 로그 ==='
-tail -50 /var/log/secure 2>/dev/null | grep -i sftp || echo 'SFTP 로그가 없습니다.'
+tail -50 {log_path} 2>/dev/null | grep -i sftp || echo 'SFTP 로그가 없습니다.'
 """
         return cmd
         
 #===================================================================        
     
     def backup(self):
-        cmd = """
-mkdir -p /root/backup/ftp_sftp
-cp /etc/vsftpd/vsftpd.conf /root/backup/ftp_sftp/vsftpd.conf.backup 2>/dev/null || echo 'FTP 설정 파일 없음'
-cp /etc/ssh/sshd_config /root/backup/ftp_sftp/sshd_config.backup
-ls -lh /root/backup/ftp_sftp/
+        if self.os == "rocky9":
+            config_path = "/etc/vsftpd/vsftpd.conf"
+        else:
+            config_path = "/etc/vsftpd.conf"
+        
+        cmd = f"""
+mkdir -p {self.backup_dir}
+cp {config_path} {self.backup_dir}/vsftpd.conf.backup 2>/dev/null || echo 'FTP 설정 파일 없음'
+cp /etc/ssh/sshd_config {self.backup_dir}/sshd_config.backup
+ls -lh {self.backup_dir}/
 """
         return cmd
 
