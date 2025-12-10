@@ -78,7 +78,8 @@ mount -t nfs {self.nfs_server_ip}:{self.server_nfs_dir} {self.nfs_client_mount_p
         auto = input("/etc/fstab에 부팅 시 자동마운트 설정을 하시겠습니까?  ex) y/n : ")
         cmd = ""
         if(auto == "y"):
-            cmd = f"{self.nfs_server_ip}:{self.server_nfs_dir} {self.nfs_client_mount_point} nfs defaults 0 0 | sudo tee -a /etc/fstab"
+            cmd = f"echo '{self.nfs_server_ip}:{self.server_nfs_dir} {self.nfs_client_mount_point} nfs rw,hard,intr,_netdev 0 0' | sudo tee -a /etc/fstab"
+
         return cmd
     
 #재시작 및 자동활성화 
