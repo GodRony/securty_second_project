@@ -114,7 +114,7 @@ systemctl restart vsftpd
         
 #===================================================================        
     
-    def add_ftp_user(self):
+    def add_user(self):
         if self.os == "rocky9":
             nologin_path = "/sbin/nologin"
         else:
@@ -197,7 +197,7 @@ getent group {self.ftp_group}
         
 #===================================================================        
     
-    def chk_ftp_log(self):
+    def chk_log(self):
         cmd = f"""
 echo '=== FTP 로그 ==='
 tail -50 {self.ftp_log} 2>/dev/null || echo 'FTP 로그 파일이 없습니다.'
