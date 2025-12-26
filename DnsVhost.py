@@ -32,8 +32,7 @@ class DnsVhost:
 
 
     def set_vhostconf(self):
-        vhost_name = input("VHost 설정 파일을 세팅합니다. 원하는 이름을 입력하세요 (예: vhost.conf): ")
-        self.VHOST_CONF = f"/etc/httpd/conf.d/{vhost_name}"
+        self.VHOST_CONF = f"/etc/httpd/conf.d/vhost.conf"
         self.SERVER_NAME = input("ServerName을 입력하세요. (예: test.com , ppp.com): ")
         return f"touch {self.VHOST_CONF}"
 
@@ -43,7 +42,6 @@ class DnsVhost:
     
     def mod_vhostconf(self):
 #        
-        
         WEB_DOCUMENT_ROOT = input("사용할 웹 디렉토리를 입력하세요 (예: /home/team1 또는 /var/www/young): ").strip()
         third_domain = input("3차 도메인을 입력해주세요. ServerName 생성시 필요합니다. (예: ns, wp, jl 등..): ")
         self.Third_domain.append(third_domain)
@@ -74,6 +72,22 @@ EOF
 """
         return cmd
 
+    def set_reverse_proxy_vhostconf(self,third_domain):
+        self.VHOST_CONF = f"/etc/httpd/conf.d/vhost.conf"
+        self.SERVER_NAME = input("ServerName을 입력하세요. (예: test.com , ppp.com): ")
+        
+        cmd = f"""
+cat << EOF >> "/etc/httpd/conf.d/vhost.conf"
+<VirtualHost *:80>
+    ServerName {third_domain}.{self.SERVER_NAME}
+    ProxyRequests off 
+    ProxyPass / http://localhost:8080/ 
+    ProxyPassReverse / http://localhost:8080/ 
+    ErrorLog "/var/log/httpd/tom_error_log"
+    CustomLog "/var/log/httpd/tom_access_log" combined
+</VirtualHost>
+"""
+        
     def restart_http(self):
         print("httpd restart 시작")
         return "sudo systemctl restart httpd"
@@ -163,6 +177,17 @@ EOF
 {contents}
 EOF
 """
+    def set_dns_Third_domain_with_params(self,third_domain):
+        self.IPADDR = input("사용할 DNS의 ip: ")
+        contents += f"{third}        IN        A        {self.IPADDR}\n"
+        self.ZONE_NAME = input("생성할 zone name을 입력하세요. (ex. test.com) : ")
+        self.ZONE_FILE = f"{self.ZONE_NAME}.zone"
+        return f"""
+cat << 'EOF' >> /var/named/{self.ZONE_FILE}
+{contents}
+EOF
+"""
+        
     def start_dns(self):
         return "systemctl restart named"
 

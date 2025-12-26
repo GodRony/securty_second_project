@@ -74,6 +74,23 @@ EOF
 """
         return cmd
 
+    def set_reverse_proxy_vhostconf(self,third_domain):
+        vhost_name = input("VHost 설정 파일을 세팅합니다. 원하는 이름을 입력하세요 (예: vhost.conf): ")
+        self.VHOST_CONF = f"/etc/httpd/conf.d/{vhost_name}"
+        self.SERVER_NAME = input("ServerName을 입력하세요. (예: test.com , ppp.com): ")
+        
+        cmd = f"""
+cat << EOF >> "/etc/httpd/conf.d/vhost.conf"
+<VirtualHost *:80>
+    ServerName {third_domain}.{self.SERVER_NAME}
+    ProxyRequests off 
+    ProxyPass / http://localhost:8080/ 
+    ProxyPassReverse / http://localhost:8080/ 
+    ErrorLog "/var/log/httpd/tom_error_log"
+    CustomLog "/var/log/httpd/tom_access_log" combined
+</VirtualHost>
+"""
+        
     def restart_http(self):
         print("httpd restart 시작")
         return "sudo systemctl restart httpd"
