@@ -8,6 +8,7 @@ class Tomcat:
             cmd = """
             wget https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.rpm   
             dnf -y install jdk-25_linux-x64_bin.rpm
+            dnf -y install unzip 
             """
             
         elif(self.os == "Ubuntu"):
@@ -29,5 +30,35 @@ unzip apache-tomcat-11.0.15.zip
 
 cd /home/tomcat/apache-tomcat-11.0.15
 mv * /home/tomcat
+chmod 777 -R /home/tomcat
+chown -R tomcat:tomcat /home/tomcat
+        """
+        return cmd
+
+    def set_service(self):
+        cmd = """
+cat <<EOF >> "/etc/systemd/system/tomcat.service"
+[Unit]
+Description=Apache Tomcat Web Application Container
+After=network.target
+# 네트워크가 먼저 준비된 후 실행
+[Service]
+Type=forking
+User=tomcat
+Group=tomcat
+# 설치 디렉토리
+Environment="JAVA_HOME=/usr/lib/jvm/jdk-25.0.1-oracle-x64"
+Environment="CATALINA_HOME=/home/tomcat"
+Environment="CATALINA_BASE=/home/tomcat"
+# 서비스 시작/종료 스크립트 경로
+ExecStart=/home/tomcat/bin/startup.sh
+ExecStop=/home/tomcat/bin/shutdown.sh
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable --now tomcat
+systemctl restart named
+systemctl restart httpd
         """
         return cmd
