@@ -6,7 +6,13 @@ class RAID:
         self.RAID1_MOUNT_DIR = ""
 
     def install_raid(self) :
-        return "dnf install -y mdadm"
+        cmd = ""
+        if(self.os == "Rocky"):
+            cmd =  "dnf install -y mdadm"
+        elif(self.os == "Ubuntu"):
+            cmd =  "apt install -y mdadm"
+        return cmd
+            
     def raid1_mk(self):
         self.mount_disk1 = input("mount할 디스크1을 입력해주세요 ex. /dev/sda: ")
         self.mount_disk2 = input("mount할 디스크2를 입력해주세요 ex. /dev/sdb: ")

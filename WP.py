@@ -1,12 +1,20 @@
 class WP:
     def __init__(self,os):
-        print("WP init 시작")
+        self.os = os
 
     def install_prev_packages(self):
-        return "dnf -y install wget; dnf -y install unzip"
+        cmd = ""
+        if self.os == "Rocky":
+            cmd ="dnf -y install wget; dnf -y install unzip"
+        elif self.os == "Ubuntu":
+            cmd = "apt -y install wget; apt -y install unzip; apt install php-mysql"
+        else:
+            cmd=""
+            print("지원하지 않는 OS입니다.")
+        return cmd
 
     def install_and_move_dir(self):
-        print("wp를 설치합니답")
+        print("wp를 설치합니다.")
         commands = """
 cd ~
 wget https://ko.wordpress.org/latest-ko_KR.zip
@@ -16,6 +24,7 @@ cd wp
 unzip latest-ko_KR.zip
 cd wordpress
 useradd wp
+mkdir -p /home/wp
 mv * /home/wp
 cd /home
 chmod 755 -R wp
