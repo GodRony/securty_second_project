@@ -4,8 +4,8 @@
 
 
 class Partition :
-    def __init__(self):
-#        self.os = os
+    def __init__(self,os):
+        self.os = os
         self.PARTITION = ""
         self.MOUNT_DIR = ""
 
