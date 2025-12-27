@@ -134,9 +134,10 @@ EOF
     
     ## 설치하고 나서 새롭게 DnsVhost 클래스를 사용할 경우에 set_servername 해야함.
     def set_dns_Third_domain(self,third_domain):
+        print("DNS 설정을 합니다. 3차 도메인을 추가합니다.")
         self.zonefile = f"{self.servername}.zone"
-        self.ipaddr = input("사용할 DNS의 ip: ")
-        contents = f"{third_domain}        IN        A        {self.ipaddr}\n"
+        self.ipaddr = input(f"3차 도메인인 {third_domain}을 사용할 DNS의 ip를 입력해주세요. : ")
+        contents = f"{third_domain}        IN        A        {self.ipaddr}"
         return f"""
 cat << 'EOF' >> /var/named/{self.zonefile}
 {contents}

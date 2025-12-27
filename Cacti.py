@@ -125,6 +125,8 @@ systemctl restart snmpd
 """
         return cmd
     def set_crond(self):
-         print("8. /etc/php.ini  설정 시작")
-        return "sed -i 's|^#\*/5|\*/5|' /etc/cron.d/cacti"
+        print("8. /etc/php.ini  설정 시작")
+        return "sed -i 's|^#*/5|*/5|' /etc/cron.d/cacti"
+
+
         
