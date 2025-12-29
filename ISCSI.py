@@ -18,18 +18,12 @@ class ISCSI:
         cmd = ""
         if self.server_OS == "Rocky":
             cmd = """
-firewall-cmd --add-port=3260/tcp --permanent
-firewall-cmd --reload
 systemctl stop firewalld
             """
-            return cmd
         elif self.server_OS == "Ubuntu":
             cmd = """
-ufw allow 3260/tcp
-ufw reload
 systemctl stop ufw
             """
-            return cmd
         else:
             "지원하지 않는 OS입니다."
 
