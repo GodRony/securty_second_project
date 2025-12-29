@@ -12,10 +12,14 @@ class Tomcat:
             """
             
         elif(self.os == "Ubuntu"):
-            cmd = """ """
+            cmd = """ 
+            wget https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.deb
+            apt install ./jdk-25_linux-x64_bin.deb
+            wget https://dlcdn.apache.org/tomcat/tomcat-11/v11.0.15/bin/apache-tomcat-11.0.15.zip
+            """
         else :
             print("지원하지 않는 OS입니다.")
-        
+        print("Tomcat 설치합니다.")
         return cmd
 
 
@@ -36,7 +40,21 @@ chown -R tomcat:tomcat /home/tomcat
         return cmd
 
     def set_service(self):
-        cmd = """
+        add_cmd = ""
+        if(self.os == "Rocky"):
+            add_cmd = """
+systemctl restart named
+systemctl restart httpd
+            """
+            
+        elif(self.os == "Ubuntu"):
+            add_cmd = """ 
+systemctl restart bind9
+systemctl restart apache2
+            """
+            
+        cmd = f"""
+sed -i '/<Connector / s/port="8080"/port="8088"/' /home/tomcat/conf/server.xml
 cat <<EOF >> "/etc/systemd/system/tomcat.service"
 [Unit]
 Description=Apache Tomcat Web Application Container
@@ -58,7 +76,9 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
 systemctl enable --now tomcat
-systemctl restart named
-systemctl restart httpd
+systemctl restart tomcat
+{add_cmd}
         """
         return cmd
+
+

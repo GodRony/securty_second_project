@@ -40,9 +40,9 @@ class SMB():
     def smb_install(self):
         print("smb 패키지를 설치합니다.")
         if self.os == "Rocky":
-            cmd ="dnf -y install samba samba-client cifs-utils"
+            cmd ="dnf -y install samba samba-client cifs-utils expect"
         elif self.os == "Ubuntu":
-            cmd = "apt install cifs-utils smbclient -y"
+            cmd = " apt install -y samba smbclient cifs-utils expect"
         else:
             cmd=""
             print("지원하지 않는 OS입니다.")
@@ -134,11 +134,25 @@ EOF
         return cmd
 
     def smb_server_start(self):
-        cmd = f"""
+        cmd = ""
+        if self.os == "Rocky":
+            cmd = f"""
 systemctl stop firewalld
 setenforce 0
 systemctl start smb
         """
+        elif self.os == "Ubuntu":
+            cmd = f"""
+systemctl stop ufw
+systemctl start smbd
+systemctl restart nmbd
+        """
+        else:
+            cmd=""
+            print("지원하지 않는 OS입니다.")
+        return cmd
+        
+
         return cmd
 #########################################
 #              SMB CLIENT               #

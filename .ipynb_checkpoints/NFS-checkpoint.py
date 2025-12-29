@@ -21,7 +21,7 @@ class NFS:
         if (self.os == "Rocky"):
             cmd ="dnf install -y nfs-utils"
         elif (self.os == "Ubuntu"):
-            cmd = "apt install nfs-kernel-server nfs-common"
+            cmd = "apt install -y nfs-kernel-server nfs-common"
         else:
             print("지원하지 않는 OS입니다.")
         return cmd
@@ -52,11 +52,21 @@ exportfs -ra
         return cmd
         
     def server_nfs_start(self):
-        cmd = """
+        cmd=""
+        if (self.os == "Rocky"):
+            cmd = """
 systemctl stop firewalld
 setenforce 0
 systemctl restart nfs-server
 """
+        elif (self.os == "Ubuntu"):
+            cmd = """
+systemctl stop ufw
+sudo systemctl restart nfs-kernel-server
+"""
+        else:
+            print("지원하지 않는 OS입니다.")
+
         return cmd
         
 #########################################

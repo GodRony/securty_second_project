@@ -16,7 +16,7 @@ class DnsVhost:
     def install_http(self):
         cmd = ""
         if(self.os == "Rocky"):
-            cmd = "dnf -y install httpd ; systemctl enable --now httpd ; dnf install expect -y"
+            cmd = "dnf -y install httpd ; systemctl enable --now httpd ; dnf install expect -y; systemctl stop ufw"
         elif(self.os == "Ubuntu"):
             cmd = "apt update -y; apt install -y apache2"
         else : 
@@ -63,19 +63,21 @@ EOF
 """
         return cmd
 
-    def set_reverse_proxy_vhostconf(self,third_domain,error_log ,custom_log):
+    def set_reverse_proxy_vhostconf(self,third_domain,port_num):
         ubuntu_cmd = " "
+        http_dir = "httpd"
         if(self.os == "Ubuntu"):
-            ubuntu_cmd = "a2ensite vhost.conf; a2dissite 000-default.conf; systemctl reload apache2"
+            http_dir = "apache2"
+            ubuntu_cmd = "a2ensite vhost.conf; a2dissite 000-default.conf; systemctl reload apache2; a2enmod proxy ; a2enmod proxy_http"
         cmd = f"""
-cat << EOF >> "{self.VHOST_CONF}"
+cat << EOF >> "{self.vhostconf}"
 <VirtualHost *:80>
     ServerName {third_domain}.{self.servername}
     ProxyRequests off 
-    ProxyPass / http://localhost:8080/ 
-    ProxyPassReverse / http://localhost:8080/ 
-    ErrorLog "{error_log}"
-    CustomLog "{custom_log}" combined
+    ProxyPass / http://localhost:{port_num}/ 
+    ProxyPassReverse / http://localhost:{port_num}/
+    ErrorLog /var/log/{http_dir}/{third_domain}_error_log
+    CustomLog /var/log/{http_dir}/{third_domain}_access_log combined
 </VirtualHost>
 EOF
 {ubuntu_cmd}
