@@ -16,9 +16,9 @@ class DnsVhost:
     def install_http(self):
         cmd = ""
         if(self.os == "Rocky"):
-            cmd = "dnf -y install httpd ; systemctl enable --now httpd ; dnf install expect -y; systemctl stop ufw"
+            cmd = "dnf -y install httpd ; systemctl enable --now httpd ; dnf install expect -y; systemctl stop firewalld; setenforce 0"
         elif(self.os == "Ubuntu"):
-            cmd = "apt update -y; apt install -y apache2"
+            cmd = "apt update -y; apt install -y apache2; systemctl stop ufw"
         else : 
             print("지원하지 않는 OS입니다.")
             
@@ -26,7 +26,7 @@ class DnsVhost:
 
 
     def set_servername(self):
-        self.servername = input("ServerName을 입력하세요. (예: test.com , ppp.com): ")
+        self.servername = input("ServerName을 입력하세요. (예: test.com , bs.com): ")
 
     def mk_vhostconf(self):
         return f"touch {self.vhostconf}"

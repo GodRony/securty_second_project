@@ -16,11 +16,13 @@ class SNMP:
     def set_snmp(self):
         conf = "/etc/snmp/snmpd.conf"
         print(f"{conf} 설정 시작합니다.")
-        self.local_community = input("74번째 줄 : 설정할 local의 COMMUNITY 이름을 입력해주세요 ex. kong : ")
-        self.my_community = input("74번째 줄 : 설정할 mynetwork의 COMMUNITY 이름을 입력해주세요 ex. tj : ")
-        self.NI = input("75번째 줄 : 설정할 mynetwork의 대역을 입력해주세요. ex. 172.16.0.0/16 : ")
-        
-        cmd = f"""
+        cmd = ""
+        if(self.os == "Rocky") :
+            self.local_community = input("74번째 줄 : 설정할 local의 COMMUNITY 이름을 입력해주세요 ex. kong : ")
+            self.my_community = input("74번째 줄 : 설정할 mynetwork의 COMMUNITY 이름을 입력해주세요 ex. tj : ")
+            self.NI = input("75번째 줄 : 설정할 mynetwork의 대역을 입력해주세요. ex. 172.16.0.0/16 : ")
+            
+            cmd = f"""
 sed -i "s|#com2sec local     localhost       COMMUNITY|com2sec local     localhost       {self.local_community}|g" {conf}
 sed -i "s|#com2sec mynetwork NETWORK/24      COMMUNITY|com2sec mynetwork {self.NI}      {self.my_community}|g" {conf}
 
@@ -33,6 +35,11 @@ sed -i "s|#view all    included  .1                               80|view all   
 sed -i 's|^#access MyROGroup.*|access MyROGroup ""      any       noauth    0      all    none   none|g' {conf}
 
 sed -i 's|^#access MyRWGroup.*|access MyRWGroup ""      any       noauth    0      all    all    all|g' {conf}
+
+sed -i 's|com2sec notConfigUser  default       public|#com2sec notConfigUser  default       public|g' {conf}
+echo "rocommunity public" >> {conf}
+ 
+
 """
         return cmd
 
@@ -40,5 +47,12 @@ sed -i 's|^#access MyRWGroup.*|access MyRWGroup ""      any       noauth    0   
         return "systemctl restart --now snmpd; systemctl enable --now snmpd"
 
     def test_snmpd_local(self) :
-        print("자기자신에게 테스트합니다.")
-        return f"snmpwalk -v2c -c {self.local_community} localhost system"
+        print("자기자신에게 테스트합니다. rocky인 경우만")
+        cmd = ""
+        if(self.os == "Rocky") :
+            cmd = f"snmpwalk -v2c -c {self.local_community} localhost system"
+        return cmd
+
+    def test_snmpd_public(self) :
+        print("public으로 테스트합니다.")
+        return f"snmpwalk -v2c -c public localhost system"

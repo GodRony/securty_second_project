@@ -64,7 +64,7 @@ class MariaDB:
         return cmd
     def init_mariaDB(self):
         print("secure_installation 시작")
-        MYSQL_ROOT_PASSWORD="asd123!@"
+        MYSQL_ROOT_PASSWORD=input("mysql로 설정한 비밀번호를 입력해주세요 (ex. asd123!@) : ")
         cmd = f'''
 cat <<EOF > /root/mysql_secure.exp
 #!/usr/bin/expect -f
