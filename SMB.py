@@ -184,13 +184,15 @@ chmod +x /root/smb_login.exp
     
     def smb_client_mount(self) :
         self.smb_share = input("서버에 지정된 공유 폴더의 이름을 입력하세요. ex)share : ")  #서버에 지정된 공유 폴더의 이름
-        auto = input("/etc/fstab에 부팅 시 자동마운트 설정을 하시겠습니까? n 입력시 수동마운트 적용 ex) y/n : ")
+        auto = input("자동 마운트를 진행하겠습니까? 맞으면 y 아니면 n를 입력하세요. ex. n : ")
         if(auto == "n") :
             cmd = f' mount -v -t cifs //{self.smb_server_ip}/{self.smb_share} {self.smb_client_mount_point} -o username={self.smb_id},password="{self.smb_password}",vers=3.0'
             return cmd
     
         if (auto == "y"):
-            cmd = (f"//{self.smb_server_ip}/{self.smb_share}    {self.smb_client_mount_point}    cifs    defaults    0 0 | sudo tee -a /etc/fstab")
+            cmd = f"""
+            mount -v -t cifs //{self.smb_server_ip}/{self.smb_share} {self.smb_client_mount_point} -o username={self.smb_id},password="{self.smb_password}",vers=3.0
+            //{self.smb_server_ip}/{self.smb_share}    {self.smb_client_mount_point}    cifs    defaults    0 0 | sudo tee -a /etc/fstab"""
             return cmd
         else :
             print("잘못 입력하셨습니다")

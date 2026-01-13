@@ -65,6 +65,7 @@ class Diskquota:
             self.mount_point = input("diskquota를 실행할 mount 디렉토리를 입력하세요. ex. /mnt/test")
             cmd = f"""
 sed -i '\\|{self.partition}|d' /etc/fstab
+mkdir -p {self.mount_point}
 echo '{self.partition} {self.mount_point} ext4 defaults,usrquota,grpquota 0 0' | sudo tee -a /etc/fstab
 systemctl daemon-reload
 mount -o remount {self.mount_point}

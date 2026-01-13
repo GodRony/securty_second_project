@@ -43,7 +43,47 @@ max_connections = 100
 EOF
 """
         return cmd
-        
+
+    def mk_local_cacti(self):
+        islocal = input("local에서 cacti DB 및 계정을 생성하겠습니까? 맞으면 y, 로컬에서 이미 DB 및 계정을 만든경우에 n을 누르세요 (y or n) ex. y : ")
+        mk_local_db_cmd = " "
+        if(islocal == "y") :
+            print("local일 경우에, 자동으로 DB를 만듭니다. db 이름 : cacti, user : cacti@localhost , pw : asd123!@")
+            db_host_pw = input("DB 서버 pw ex. asd123!@ : ")
+            mk_local_db_cmd = f"""
+cat <<EOF > /root/set_cacti.exp
+#!/usr/bin/expect -f
+
+set timeout 10
+
+spawn mysql -uroot -p
+expect "Enter password:"
+send "{db_host_pw}\\r"
+
+expect "*MariaDB*"
+send "create database cacti;\\r"
+
+expect "*MariaDB*"
+send "create user 'cacti'@'localhost' identified by 'asd123!@';\\r"
+
+expect "*MariaDB*"
+send "grant all privileges on cacti.* to 'cacti'@'localhost';\\r"
+
+expect "*MariaDB*"
+send "flush privileges;\\r"
+
+expect "*MariaDB*"
+send "quit;\\r"
+
+expect eof
+EOF
+
+chmod +x /root/set_cacti.exp
+/usr/bin/expect /root/set_cacti.exp
+"""
+        return mk_local_db_cmd
+
+    
     def set_cacti(self):
         print("1. set_cacti 설정 시작")
         cmd = f"""
